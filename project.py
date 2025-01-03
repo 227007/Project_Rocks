@@ -13,7 +13,13 @@ class Player:
 
 class HumanPlayer(Player):
     def choose_move(self):
-        self.move = input("Enter your move (rock, paper, scissors): ").lower()
+        valid_moves = ["rock", "paper", "scissors"]
+        while True:
+            self.move = input("Enter your move (rock, paper, scissors): ").lower()
+            if self.move in valid_moves:
+                break
+            else:
+                print("Invalid move. Please choose again.")
 
 class AlwaysRockPlayer(Player):
     def choose_move(self):
