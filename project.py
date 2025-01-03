@@ -16,10 +16,16 @@ class AlwaysRockPlayer(Player):
     def move(self):
         return "rock"
 
+    def remember(self, opponent_move):
+        pass
+
 class RandomPlayer(Player):
     """Player that chooses moves randomly."""
     def move(self):
         return random.choice(MOVES)
+
+    def remember(self, opponent_move):
+        pass
 
 class ImitatorPlayer(Player):
     """Player that imitates the human's previous move."""
@@ -42,6 +48,9 @@ class CyclicPlayer(Player):
         self.index = (self.index + 1) % len(MOVES)
         return move
 
+    def remember(self, opponent_move):
+        pass
+
 class HumanPlayer(Player):
     """Human player class."""
     def move(self):
@@ -50,6 +59,9 @@ class HumanPlayer(Player):
             if user_move in MOVES:
                 return user_move
             print("Invalid move. Please try again.")
+
+    def remember(self, opponent_move):
+        pass
 
 def determine_winner(move1, move2):
     """Determine the winner based on moves."""
@@ -73,7 +85,7 @@ class Game:
         """Play a single round."""
         move1 = self.player1.move()
         move2 = self.player2.move()
-        
+
         print(f"Player 1 played: {move1}")
         print(f"Player 2 played: {move2}")
 
@@ -84,7 +96,7 @@ class Game:
             print("It's a tie!")
 
         self.scores[winner] += 1
-        
+
         self.player1.remember(move2)
         self.player2.remember(move1)
 
@@ -97,7 +109,7 @@ class Game:
             print(f"Scores: {self.scores}\n")
         print("Final Scores:")
         print(self.scores)
-        
+
         if self.scores["player1"] > self.scores["player2"]:
             print("Player 1 is the overall winner!")
         elif self.scores["player1"] < self.scores["player2"]:
