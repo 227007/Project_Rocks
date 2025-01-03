@@ -1,125 +1,180 @@
+"""Engage in a Rock, Paper, Scissors game against different AI players."""
+
 import random
 
-# Constants for moves
-MOVES = ["rock", "paper", "scissors"]
+options = ["rock", "paper", "scissors"]
 
-class Player:
-    """Base player class."""
-    def move(self):
-        raise NotImplementedError("Subclasses must implement this method.")
 
-    def remember(self, opponent_move):
-        pass  # Default behavior: do nothing
+class Participant:
+    """Base class for participants in the game."""
 
-class AlwaysRockPlayer(Player):
-    """Player that always plays 'rock'."""
-    def move(self):
+    def play(self):
+        """Provide the participant's move."""
         return "rock"
 
-    def remember(self, opponent_move):
+    def update(self, own_move, opponent_move):
+        """Update knowledge based on the round result."""
         pass
 
-class RandomPlayer(Player):
-    """Player that chooses moves randomly."""
-    def move(self):
-        return random.choice(MOVES)
 
-    def remember(self, opponent_move):
-        pass
+class FixedRockPlayer(Participant):
+    """Always chooses 'rock'."""
 
-class ImitatorPlayer(Player):
-    """Player that imitates the human's previous move."""
+    def play(self):
+        """Provide the participant's move."""
+        return "rock"
+
+
+class RandomMovePlayer(Participant):
+    """Selects a random move."""
+
+    def play(self):
+        """Return a random move from the options."""
+        return random.choice(options)
+
+
+class UserPlayer(Participant):
+    """Handles input for a human participant."""
+
+    def play(self):
+        """Get the human player's move via input."""
+        while True:
+            user_input = (
+                input("Choose your move (rock, paper, scissors,"
+                      "or 'quit' to stop): ")
+                .strip()
+                .lower()
+            )
+            if user_input in options:
+                return user_input
+            elif user_input in ["quit", "q"]:
+                return "quit"
+            print(f"'{user_input}' is not valid. Please try again.")
+
+
+class MirrorPlayer(Participant):
+    """Mimics the opponent's previous move."""
+
     def __init__(self):
+        """Initialize MirrorPlayer with no prior move."""
         self.last_opponent_move = None
 
-    def move(self):
-        return self.last_opponent_move or random.choice(MOVES)
+    def play(self):
+        """Play the last opponent's move or a random move initially."""
+        if self.last_opponent_move is None:
+            return random.choice(options)
+        return self.last_opponent_move
 
-    def remember(self, opponent_move):
+    def update(self, own_move, opponent_move):
+        """Update the last opponent's move."""
         self.last_opponent_move = opponent_move
 
-class CyclicPlayer(Player):
-    """Player that cycles through the three moves."""
+
+class SequentialPlayer(Participant):
+    """Cycles through the moves in order."""
+
     def __init__(self):
-        self.index = 0
+        """Initialize SequentialPlayer with no prior move."""
+        self.last_move = None
 
-    def move(self):
-        move = MOVES[self.index]
-        self.index = (self.index + 1) % len(MOVES)
-        return move
+    def play(self):
+        """Play the next move in sequence."""
+        if self.last_move is None:
+            return random.choice(options)
+        next_move = (options.index(self.last_move) + 1) % len(options)
+        return options[next_move]
 
-    def remember(self, opponent_move):
-        pass
+    def update(self, own_move, opponent_move):
+        """Update the last move played."""
+        self.last_move = own_move
 
-class HumanPlayer(Player):
-    """Human player class."""
-    def move(self):
+
+def determine_winner(choice1, choice2):
+    """Check if choice1 beats choice2."""
+    return (
+        (choice1 == "rock" and choice2 == "scissors")
+        or (choice1 == "scissors" and choice2 == "paper")
+        or (choice1 == "paper" and choice2 == "rock")
+    )
+
+
+class Match:
+    """Handles the game mechanics."""
+
+    def __init__(self, participant1, participant2):
+        """Initialize a new match with two participants."""
+        self.participant1 = participant1
+        self.participant2 = participant2
+        self.score1 = 0
+        self.score2 = 0
+
+    def play_turn(self):
+        """Execute a single turn of the game."""
+        move1 = self.participant1.play()
+        if move1 == "quit":
+            return False
+
+        move2 = self.participant2.play()
+        print(f"Player 1: {move1}  Player 2: {move2}")
+
+        if determine_winner(move1, move2):
+            print("Player 1 wins the round!")
+            self.score1 += 1
+        elif determine_winner(move2, move1):
+            print("Player 2 wins the round!")
+            self.score2 += 1
+        else:
+            print("It's a tie this round!")
+
+        print(f"Final Scores -> Player 1: {self.score1}, "
+              f"Player 2: {self.score2}")
+        self.participant1.update(move1, move2)
+        self.participant2.update(move2, move1)
+        return True
+
+    def start_game(self):
+        """Start and manage the complete game flow."""
+        print("Let the game begin!")
+        round_count = 1
         while True:
-            user_move = input(f"Enter your move ({', '.join(MOVES)}): ").lower()
-            if user_move in MOVES:
-                return user_move
-            print("Invalid move. Please try again.")
+            print(f"Round {round_count}:")
+            if not self.play_turn():
+                break
+            round_count += 1
 
-    def remember(self, opponent_move):
-        pass
-
-def determine_winner(move1, move2):
-    """Determine the winner based on moves."""
-    if move1 == move2:
-        return "tie"
-    if (move1 == "rock" and move2 == "scissors") or \
-       (move1 == "scissors" and move2 == "paper") or \
-       (move1 == "paper" and move2 == "rock"):
-        return "player1"
-    return "player2"
-
-class Game:
-    """Rock Paper Scissors Game class."""
-    def __init__(self, player1, player2, rounds=3):
-        self.player1 = player1
-        self.player2 = player2
-        self.rounds = rounds
-        self.scores = {"player1": 0, "player2": 0, "tie": 0}
-
-    def play_round(self):
-        """Play a single round."""
-        move1 = self.player1.move()
-        move2 = self.player2.move()
-
-        print(f"Player 1 played: {move1}")
-        print(f"Player 2 played: {move2}")
-
-        winner = determine_winner(move1, move2)
-        if winner != "tie":
-            print(f"{winner.capitalize()} wins this round!")
+        print("Game over!")
+        print(f"Final Scores -> Player 1: {self.score1}, "
+              f"Player 2: {self.score2}")
+        if self.score1 > self.score2:
+            print("Player 1 is the champion!")
+        elif self.score2 > self.score1:
+            print("Player 2 is the champion!")
         else:
-            print("It's a tie!")
+            print("It's a draw!")
 
-        self.scores[winner] += 1
-
-        self.player1.remember(move2)
-        self.player2.remember(move1)
-
-    def play_match(self):
-        """Play a match consisting of multiple rounds."""
-        print(f"Starting a match of {self.rounds} rounds!\n")
-        for round_number in range(1, self.rounds + 1):
-            print(f"Round {round_number}:")
-            self.play_round()
-            print(f"Scores: {self.scores}\n")
-        print("Final Scores:")
-        print(self.scores)
-
-        if self.scores["player1"] > self.scores["player2"]:
-            print("Player 1 is the overall winner!")
-        elif self.scores["player1"] < self.scores["player2"]:
-            print("Player 2 is the overall winner!")
-        else:
-            print("The match is a tie!")
 
 if __name__ == "__main__":
-    print("Welcome to Rock Paper Scissors!")
-    human = HumanPlayer()
-    computer = RandomPlayer()  # You can replace this with any other computer strategy
-    game = Game(human, computer, rounds=5)
-    game.play_match()
+    """Setup and start the game based on opponent choice."""
+    print(
+        "Select your opponent:\n"
+        "1. RandomMovePlayer\n"
+        "2. MirrorPlayer\n"
+        "3. SequentialPlayer\n"
+        "4. FixedRockPlayer"
+    )
+    opponent_choice = input("Enter the number of your choice: ")
+
+    if opponent_choice == "1":
+        opponent = RandomMovePlayer()
+    elif opponent_choice == "2":
+        opponent = MirrorPlayer()
+    elif opponent_choice == "3":
+        opponent = SequentialPlayer()
+    elif opponent_choice == "4":
+        opponent = FixedRockPlayer()
+    else:
+        print("Invalid choice! Defaulting to RandomMovePlayer.")
+        opponent = RandomMovePlayer()
+
+    game = Match(UserPlayer(), opponent)
+    game.start_game()
